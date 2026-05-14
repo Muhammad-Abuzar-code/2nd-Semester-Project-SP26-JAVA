@@ -1,5 +1,8 @@
 package com.compressor.algorithm;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+
 public class Demo {
     public static void main(String[] args) {
 
@@ -37,5 +40,6 @@ public class Demo {
         System.out.println("Original size  : " + Original.getBytes().length);
         System.out.println("Compressed size: " + LZWcompressed.length);
         System.out.println("File Compressed by LZW  : " + LZWcompressedRatio + "%");
+
     }
 }

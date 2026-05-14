@@ -5,12 +5,18 @@ import java.util.List;
 
 import com.compressor.algorithm.CompressionAlgorithm;
 
+import javax.print.attribute.standard.Compression;
+
 public class CompressionPipeline {
     private String pipelineName;
     private List<CompressionAlgorithm> stages;
 
     public CompressionPipeline(){
         this.pipelineName = pipelineName;
+        this.stages = new ArrayList<>();
+    }
+    public CompressionPipeline(String pipeline){
+        this.pipelineName = pipeline;
         this.stages = new ArrayList<>();
     }
 
