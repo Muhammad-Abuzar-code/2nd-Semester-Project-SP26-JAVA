@@ -34,7 +34,7 @@ public class CompressionPipeline {
 
     public byte[] decompress(byte[] data){
         byte[] current = data;
-        for(int i = stages.size() - 1 ; i>=0 ; i++){
+        for(int i = stages.size() - 1 ; i >= 0 ; i--){
             current = stages.get(i).decompress(current);
         }
         return current;

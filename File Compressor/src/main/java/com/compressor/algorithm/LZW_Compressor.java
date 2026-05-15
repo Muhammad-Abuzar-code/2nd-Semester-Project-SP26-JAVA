@@ -67,55 +67,59 @@ public class LZW_Compressor extends CompressionAlgorithm {
         return CompressedOutput.toByteArray();
     };
 
-    public byte[] decompress(byte[] data){
+    public byte[] decompress(byte[] data) {
 
-        if(data == null || data.length == 0){
+        if (data == null || data.length == 0) {
             return new byte[0];
         }
 
-        HashMap<Integer,String> dictionary = new HashMap<>();
-
-        for(int i=0 ; i<256 ; i++){
+        HashMap<Integer, String> dictionary = new HashMap<>();
+        for (int i = 0; i < 256; i++) {
             dictionary.put(i, String.valueOf((char) i));
         }
 
         int dictSize = 256;
+        final int MAX_DICT_SIZE = 4096;
 
         List<Integer> ByteToInt_List = new ArrayList<>();
-
-        for(int i=0; i< data.length -1 ; i+=2){
-            int code = ((data[i] & 0xFF) << 8) | (data[i+1] & 0xFF);
+        for (int i = 0; i < data.length - 1; i += 2) {
+            int code = ((data[i] & 0xFF) << 8) | (data[i + 1] & 0xFF);
             ByteToInt_List.add(code);
         }
 
-        StringBuilder Decompressed_String_output = new StringBuilder();
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
 
         String current = dictionary.get(ByteToInt_List.get(0));
+        output.write(current.charAt(0));
 
-        Decompressed_String_output.append(current);
-
-        for(int i =1 ; i< ByteToInt_List.size() ; i++){
+        for (int i = 1; i < ByteToInt_List.size(); i++) {
             int nextCode = ByteToInt_List.get(i);
             String next;
 
-            if(dictionary.containsKey(nextCode)){
+            if (dictionary.containsKey(nextCode)) {
                 next = dictionary.get(nextCode);
-            }
-            else{
+            } else {
                 next = current + current.charAt(0);
             }
 
-            Decompressed_String_output.append(next);
+            for (char c : next.toCharArray()) {
+                output.write((byte) c);
+            }
 
             dictionary.put(dictSize++, current + next.charAt(0));
             current = next;
-        }
-        byte[] Decompressed_output = new byte[Decompressed_String_output.length()];
 
-        for(int i=0; i< Decompressed_String_output.length(); i++){
-            Decompressed_output[i] = (byte) Decompressed_String_output.charAt(i);
+            // ✅ Mirror the exact same reset logic as compress
+            if (dictSize > MAX_DICT_SIZE) {
+                dictionary.clear();
+                for (int j = 0; j < 256; j++) {
+                    dictionary.put(j, String.valueOf((char) j));
+                }
+                dictSize = 256;
+                current = next; // keep current as the last decoded string
+            }
         }
 
-        return Decompressed_output;
-    };
+        return output.toByteArray();
+    }
 }
