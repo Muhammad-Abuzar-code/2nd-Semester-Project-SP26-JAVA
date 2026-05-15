@@ -24,71 +24,91 @@ import java.nio.file.StandardCopyOption;
 
 public class MainWindow extends Application {
 
-    private MultiLevelCompressor compressor = new MultiLevelCompressor();
-    private FileHandler fileHandler = new FileHandler();
+    private final MultiLevelCompressor compressor = new MultiLevelCompressor();
+    private final FileHandler fileHandler = new FileHandler();
 
-    private ProgressBar progressBar  = new ProgressBar(0);
-    private Label       statusLabel  = new Label();
-    private Button      downloadButton = new Button("Download Result");
-    private ImageView   fileIconView = new ImageView();
+    private final Label statusLabel = new Label();
+    private final Button downloadButton = new Button("Download Result");
+    private final Button statsButton = new Button("View Compression Stats");
+    private final ImageView fileIconView = new ImageView();
 
-    private File    selectedInputFile;      // file or folder the user picked
-    private boolean selectedIsFolder;       // true when selection is a folder
-    private File    processedTempFile;      // single-file result (temp .raz or restored file)
-    private File    processedTempFolder;    // folder result (restored folder, for decompress)
+    private File selectedInputFile;
+    private boolean selectedIsFolder;
+    private File processedTempFile;
+    private File processedTempFolder;
     private boolean isCurrentlyCompressing;
-    private boolean resultIsFolder;         // true when the output is a folder (decompress folder)
+    private boolean resultIsFolder;
 
     @Override
     public void start(Stage primaryStage) {
-        primaryStage.setTitle("File Compressor");
+        primaryStage.setTitle("RAZ Archiver");
 
-        VBox root = new VBox(30);
-        root.setAlignment(Pos.CENTER);
-        root.setPadding(new Insets(50));
-        root.setStyle("-fx-background-color: white;");
+        // --- HEADER SECTION ---
+        StackPane headerPane = new StackPane();
+        headerPane.setPadding(new Insets(15, 0, 15, 0));
+        headerPane.setStyle("-fx-background-color: #ffffff; " +
+                "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 2); " +
+                "-fx-border-color: #dcdde1; -fx-border-width: 0 0 1 0;");
+
+        ImageView logoView = new ImageView();
+        try {
+            File logoFile = new File("src/RAZ Archiver LOGO.jpg");
+            if (!logoFile.exists()) logoFile = new File("RAZ Archiver LOGO.jpg");
+            if (logoFile.exists()) {
+                logoView.setImage(new Image(logoFile.toURI().toString()));
+                logoView.setFitHeight(100);
+                logoView.setPreserveRatio(true);
+            }
+        } catch (Exception e) {
+            System.out.println("Logo error: " + e.getMessage());
+        }
+        headerPane.getChildren().add(logoView);
+
+        // --- MAIN CONTENT AREA ---
+        VBox mainContent = new VBox(30);
+        mainContent.setAlignment(Pos.CENTER);
+        mainContent.setPadding(new Insets(40, 50, 50, 50));
+        mainContent.setStyle("-fx-background-color: #f0f2f5;");
 
         HBox splitContent = new HBox(60);
         splitContent.setAlignment(Pos.CENTER);
 
-        VBox compressBox   = createActionColumn(primaryStage, "Compress File or Folder", "COMPRESS",   true);
-        VBox decompressBox = createActionColumn(primaryStage, "Decompress Archive",       "DECOMPRESS", false);
+        VBox compressBox = createActionColumn(primaryStage, "Compress File or Folder", "COMPRESS", true);
+        VBox decompressBox = createActionColumn(primaryStage, "Decompress Archive", "DECOMPRESS", false);
         splitContent.getChildren().addAll(compressBox, decompressBox);
 
-        // ── Feedback area ──
         VBox feedbackArea = new VBox(15);
         feedbackArea.setAlignment(Pos.CENTER);
 
-        progressBar.setPrefWidth(500);
-        progressBar.setVisible(false);
-        progressBar.setStyle("-fx-accent: #28a745;");
+
 
         HBox resultDisplay = new HBox(12);
         resultDisplay.setAlignment(Pos.CENTER);
-
         fileIconView.setFitWidth(40);
         fileIconView.setFitHeight(40);
         fileIconView.setPreserveRatio(true);
-
-        statusLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #333333;");
+        statusLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #2c3e50;");
         resultDisplay.getChildren().addAll(fileIconView, statusLabel);
 
         downloadButton.setVisible(false);
-        downloadButton.setStyle("-fx-background-color: #f8f9fa; -fx-border-color: #ced4da; "
-                + "-fx-padding: 10 30; -fx-cursor: hand; -fx-font-weight: bold;");
-        downloadButton.setOnAction(e -> handleDownload(primaryStage));
+        downloadButton.setStyle("-fx-background-color: #000080;-fx-text-fill: white; -fx-padding: 10 30; -fx-cursor: hand; -fx-font-weight: bold; -fx-background-radius: 5;");
+        downloadButton.setOnAction(event -> handleDownload(primaryStage));
 
-        feedbackArea.getChildren().addAll(progressBar, resultDisplay, downloadButton);
-        root.getChildren().addAll(splitContent, feedbackArea);
+        statsButton.setVisible(false);
+        statsButton.setStyle("-fx-background-color: #007bff; -fx-text-fill: white; -fx-padding: 10 30; -fx-cursor: hand; -fx-font-weight: bold; -fx-background-radius: 5;");
+        statsButton.setOnAction(event -> showStatsWindow());
 
-        primaryStage.setScene(new Scene(root));
+        feedbackArea.getChildren().addAll( resultDisplay, downloadButton, statsButton);
+        mainContent.getChildren().addAll(splitContent, feedbackArea);
+
+        BorderPane rootLayout = new BorderPane();
+        rootLayout.setTop(headerPane);
+        rootLayout.setCenter(mainContent);
+
+        primaryStage.setScene(new Scene(rootLayout));
         primaryStage.setMaximized(true);
         primaryStage.show();
     }
-
-    // ─────────────────────────────────────────────────────────────
-    //  BUILD ONE SIDE COLUMN
-    // ─────────────────────────────────────────────────────────────
 
     private VBox createActionColumn(Stage stage, String header, String btnText, boolean isCompress) {
         VBox col = new VBox(20);
@@ -96,27 +116,23 @@ public class MainWindow extends Application {
         col.setPrefWidth(450);
 
         Label headerLabel = new Label(header);
-        headerLabel.setStyle("-fx-font-size: 24px; -fx-font-weight: bold;");
+        headerLabel.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #2c3e50;");
 
-        // ── Drop zone ──
         VBox dropZone = new VBox(10);
         dropZone.setAlignment(Pos.CENTER);
-        dropZone.setPrefSize(400, 200);
-        dropZone.setStyle("-fx-border-color: #cccccc; -fx-border-style: dashed; "
-                + "-fx-border-width: 2; -fx-border-radius: 10; -fx-cursor: hand;");
+        dropZone.setPrefSize(400, 250);
+        dropZone.setStyle("-fx-background-color: #ffffff; -fx-border-color: #b2bec3; -fx-border-style: dashed; "
+                + "-fx-border-width: 2; -fx-border-radius: 10; -fx-background-radius: 10; -fx-cursor: hand;");
 
-        Label t  = new Label(isCompress ? "File or Folder" : "Decompress");
-        t.setStyle("-fx-font-size: 20px;");
-        Label st = new Label("Drag & Drop here, or use the buttons below");
-        dropZone.getChildren().addAll(t, st);
+        Label t = new Label("Drag and drop files here");
+        t.setStyle("-fx-font-size: 18px; -fx-text-fill: #636e72;");
+        dropZone.getChildren().add(t);
 
-        // Drag-over
         dropZone.setOnDragOver(event -> {
             if (event.getDragboard().hasFiles()) event.acceptTransferModes(TransferMode.COPY);
             event.consume();
         });
 
-        // Drop — detect file vs folder automatically
         dropZone.setOnDragDropped(event -> {
             if (event.getDragboard().hasFiles()) {
                 File dropped = event.getDragboard().getFiles().get(0);
@@ -126,54 +142,41 @@ public class MainWindow extends Application {
             event.consume();
         });
 
-        // ── Select buttons ──
         HBox selectButtons = new HBox(10);
         selectButtons.setAlignment(Pos.CENTER);
 
         if (isCompress) {
-            // Compress side: separate "File" and "Folder" buttons
             Button fileBtn = new Button("Select File");
-            fileBtn.setStyle("-fx-background-color: #6c757d; -fx-text-fill: white; "
-                    + "-fx-padding: 8 20; -fx-background-radius: 5;");
-            fileBtn.setOnAction(e -> {
+            fileBtn.setStyle("-fx-background-color: #636e72; -fx-text-fill: white; -fx-padding: 8 20; -fx-background-radius: 5;");
+            fileBtn.setOnAction(event -> {
                 FileChooser fc = new FileChooser();
                 File file = fc.showOpenDialog(stage);
                 if (file != null) setSelection(file, true);
             });
 
             Button folderBtn = new Button("Select Folder");
-            folderBtn.setStyle("-fx-background-color: #6c757d; -fx-text-fill: white; "
-                    + "-fx-padding: 8 20; -fx-background-radius: 5;");
-            folderBtn.setOnAction(e -> {
+            folderBtn.setStyle("-fx-background-color: #636e72; -fx-text-fill: white; -fx-padding: 8 20; -fx-background-radius: 5;");
+            folderBtn.setOnAction(event -> {
                 DirectoryChooser dc = new DirectoryChooser();
                 File folder = dc.showDialog(stage);
                 if (folder != null) setSelection(folder, true);
             });
-
             selectButtons.getChildren().addAll(fileBtn, folderBtn);
         } else {
-            // Decompress side: user picks either a .raz file or a .raz.zip
             Button fileBtn = new Button("Select .raz / .raz.zip");
-            fileBtn.setStyle("-fx-background-color: #6c757d; -fx-text-fill: white; "
-                    + "-fx-padding: 8 20; -fx-background-radius: 5;");
-            fileBtn.setOnAction(e -> {
+            fileBtn.setStyle("-fx-background-color: #636e72; -fx-text-fill: white; -fx-padding: 8 20; -fx-background-radius: 5;");
+            fileBtn.setOnAction(event -> {
                 FileChooser fc = new FileChooser();
-                fc.getExtensionFilters().addAll(
-                        new FileChooser.ExtensionFilter("RAZ Archives", "*.raz", "*.zip"),
-                        new FileChooser.ExtensionFilter("All Files", "*.*")
-                );
                 File file = fc.showOpenDialog(stage);
                 if (file != null) setSelection(file, false);
             });
             selectButtons.getChildren().add(fileBtn);
         }
 
-        // ── Action button ──
         Button actionBtn = new Button(btnText);
-        actionBtn.setStyle("-fx-background-color: " + (isCompress ? "#0099ff" : "#28a745")
-                + "; -fx-text-fill: white; -fx-font-weight: bold; "
-                + "-fx-padding: 12 45; -fx-background-radius: 5;");
-        actionBtn.setOnAction(e -> {
+        actionBtn.setStyle("-fx-background-color: " + (isCompress ? "#007bff" : "#28a745")
+                + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 12 45; -fx-background-radius: 5; -fx-cursor: hand;");
+        actionBtn.setOnAction(event -> {
             if (selectedInputFile != null) {
                 isCurrentlyCompressing = isCompress;
                 runBackendProcess();
@@ -186,203 +189,176 @@ public class MainWindow extends Application {
         return col;
     }
 
-    /** Set the current selection and update status label. */
     private void setSelection(File f, boolean isCompress) {
         selectedInputFile = f;
-        selectedIsFolder  = f.isDirectory();
-        fileIconView.setImage(null);
+        selectedIsFolder = f.isDirectory();
 
-        if (selectedIsFolder) {
-            statusLabel.setText("Selected folder: " + f.getName());
-        } else {
-            statusLabel.setText("Selected: " + f.getName());
+        // Load the provided File Icon
+        try {
+            File iconFile = new File("src/File Icon.png"); // Ensure filename matches exactly
+            if (iconFile.exists()) {
+                fileIconView.setImage(new Image(iconFile.toURI().toString()));
+            } else {
+                // Fallback if not in src
+                iconFile = new File("File Icon.png");
+                if (iconFile.exists()) {
+                    fileIconView.setImage(new Image(iconFile.toURI().toString()));
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("Could not load selection icon.");
         }
+
+        statsButton.setVisible(false);
+        statusLabel.setText("Selected: " + f.getName());
     }
 
-    // ─────────────────────────────────────────────────────────────
-    //  BACKGROUND TASK
-    // ─────────────────────────────────────────────────────────────
-
     private void runBackendProcess() {
-        progressBar.setVisible(true);
+
         downloadButton.setVisible(false);
+        statsButton.setVisible(false);
         fileIconView.setImage(null);
         resultIsFolder = false;
 
-        String statusMsg = isCurrentlyCompressing
-                ? (selectedIsFolder ? "Compressing folder..." : "Compressing file...")
-                : "Restoring...";
-        statusLabel.setText(statusMsg);
+        statusLabel.setText(isCurrentlyCompressing ? "Compressing..." : "Restoring...");
 
         Task<Void> task = new Task<>() {
             @Override
             protected Void call() throws Exception {
-
                 if (isCurrentlyCompressing) {
-
                     if (selectedIsFolder) {
-                        // ── Compress folder → .raz.zip ──
-                        processedTempFile = File.createTempFile(
-                                selectedInputFile.getName() + "_", ".raz.zip");
-                        compressor.compressFolder(
-                                selectedInputFile.getAbsolutePath(),
-                                processedTempFile.getAbsolutePath());
-
+                        processedTempFile = File.createTempFile(selectedInputFile.getName() + "_", ".raz.zip");
+                        compressor.compressFolder(selectedInputFile.getAbsolutePath(), processedTempFile.getAbsolutePath());
                     } else {
-                        // ── Compress single file → .raz ──
                         processedTempFile = File.createTempFile("raz_output_", ".raz");
-                        compressor.compressFile(
-                                selectedInputFile.getAbsolutePath(),
-                                processedTempFile.getAbsolutePath());
+                        compressor.compressFile(selectedInputFile.getAbsolutePath(), processedTempFile.getAbsolutePath());
                     }
-
                 } else {
-                    // ── Decompress ──
-                    String name = selectedInputFile.getName();
                     File tempDir = new File(System.getProperty("java.io.tmpdir"));
-
-                    if (name.endsWith(".raz.zip") || name.endsWith(".zip")) {
-                        // ── Decompress folder archive → restored folder ──
+                    if (selectedInputFile.getName().endsWith(".zip")) {
                         resultIsFolder = true;
-                        String restoredPath = compressor.decompressFolder(
-                                selectedInputFile.getAbsolutePath(),
-                                tempDir.getAbsolutePath());
-                        processedTempFolder = new File(restoredPath);
-
+                        String path = compressor.decompressFolder(selectedInputFile.getAbsolutePath(), tempDir.getAbsolutePath());
+                        processedTempFolder = new File(path);
                     } else {
-                        // ── Decompress single .raz file ──
-                        String originalExt = compressor.getOriginalExtensionFromHeader(
-                                selectedInputFile.getAbsolutePath());
-
-                        // Build the exact filename decompressFile() will write
-                        String rawName     = name;
-                        String withoutRaz  = rawName.endsWith(".raz")
-                                ? rawName.substring(0, rawName.length() - 4) : rawName;
-                        String baseName    = (!originalExt.isEmpty() && withoutRaz.endsWith(originalExt))
-                                ? withoutRaz.substring(0, withoutRaz.length() - originalExt.length())
-                                : withoutRaz;
-                        String restoredFileName = "restored_" + baseName + originalExt;
-
-                        compressor.decompressFile(
-                                selectedInputFile.getAbsolutePath(),
-                                tempDir.getAbsolutePath());
-
-                        processedTempFile = new File(tempDir, restoredFileName);
+                        compressor.decompressFile(selectedInputFile.getAbsolutePath(), tempDir.getAbsolutePath());
+                        processedTempFile = new File(tempDir, "restored_" + selectedInputFile.getName().replace(".raz", ""));
                     }
                 }
 
-                // Progress animation
-                for (int i = 1; i <= 100; i++) {
-                    updateProgress(i, 100);
-                    Thread.sleep(15);
-                }
+
                 return null;
             }
         };
 
-        progressBar.progressProperty().bind(task.progressProperty());
 
-        task.setOnSucceeded(e -> Platform.runLater(() -> {
-            progressBar.setVisible(false);
-
-            String resultName;
-            if (isCurrentlyCompressing) {
-                resultName = selectedIsFolder
-                        ? selectedInputFile.getName() + ".raz.zip"
-                        : fileHandler.getFileName(selectedInputFile.getAbsolutePath()) + ".raz";
-            } else {
-                resultName = resultIsFolder
-                        ? processedTempFolder.getName()
-                        : processedTempFile.getName();
-            }
-
-            // Try to show icon
-            tryLoadIcon();
-
-            statusLabel.setText((isCurrentlyCompressing ? "Compressed: " : "Restored: ") + resultName);
+        task.setOnSucceeded(event -> Platform.runLater(() -> {
+            statusLabel.setText(isCurrentlyCompressing ? "Compression Complete!" : "Restoration Complete!");
             downloadButton.setVisible(true);
+            if (isCurrentlyCompressing) statsButton.setVisible(true);
+            tryLoadIcon();
         }));
 
-        task.setOnFailed(e -> Platform.runLater(() -> {
-            progressBar.setVisible(false);
-            Throwable ex = task.getException();
-            statusLabel.setText("Error: " + (ex != null ? ex.getMessage() : "Unknown error"));
+        task.setOnFailed(event -> Platform.runLater(() -> {
+            statusLabel.setText("Error occurred during processing.");
         }));
 
         new Thread(task).start();
     }
 
-    // ─────────────────────────────────────────────────────────────
-    //  DOWNLOAD
-    // ─────────────────────────────────────────────────────────────
+    private void showStatsWindow() {
+        MultiLevelCompressor.CompressionStats stats = compressor.getLastStats();
+        if (stats == null) return;
 
-    private void handleDownload(Stage stage) {
+        Stage statsStage = new Stage();
+        statsStage.setTitle("Compression Analysis");
 
-        if (resultIsFolder) {
-            // For a restored folder: ask the user where to put it, then copy the whole tree
-            DirectoryChooser dc = new DirectoryChooser();
-            dc.setTitle("Save Restored Folder To...");
-            File destination = dc.showDialog(stage);
-            if (destination != null) {
-                try {
-                    File finalDest = new File(destination, processedTempFolder.getName());
-                    copyFolder(processedTempFolder, finalDest);
-                    statusLabel.setText("Saved folder: " + finalDest.getAbsolutePath());
-                    downloadButton.setVisible(false);
-                } catch (IOException ex) {
-                    statusLabel.setText("Save failed: " + ex.getMessage());
-                }
-            }
-        } else {
-            // Single file (compressed .raz, compressed .raz.zip, or restored file)
-            FileChooser fc = new FileChooser();
-            fc.setTitle("Save File");
-            fc.setInitialFileName(processedTempFile.getName());
-            File destination = fc.showSaveDialog(stage);
-            if (destination != null) {
-                try {
-                    Files.copy(processedTempFile.toPath(), destination.toPath(),
-                            StandardCopyOption.REPLACE_EXISTING);
-                    statusLabel.setText("Saved: " + destination.getName());
-                    downloadButton.setVisible(false);
-                } catch (IOException ex) {
-                    statusLabel.setText("Save failed: " + ex.getMessage());
-                }
-            }
-        }
+        double ratio = (1.0 - (double) stats.compressedSize / stats.originalSize) * 100;
+        String percentage = String.format("%.2f%%", ratio);
+
+        VBox root = new VBox();
+        root.setAlignment(Pos.CENTER);
+        root.setPadding(new Insets(20));
+        root.setStyle("-fx-background-color: #f0f2f5;");
+
+        // Changed alignment to Pos.CENTER to center all card contents
+        VBox card = new VBox(20);
+        card.setAlignment(Pos.CENTER);
+        card.setPadding(new Insets(30));
+        card.setMaxWidth(400);
+        card.setStyle("-fx-background-color: #ffffff; " +
+                "-fx-background-radius: 15; " +
+                "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 5);");
+
+        Label heading = new Label("Compression Status");
+        // Added center text alignment for the heading
+        heading.setStyle("-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #2c3e50; " +
+                "-fx-border-color: #007bff; -fx-border-width: 0 0 2 0; -fx-padding: 0 0 10 0; -fx-alignment: center;");
+        heading.setMaxWidth(Double.MAX_VALUE);
+
+        VBox details = new VBox(12);
+        details.setAlignment(Pos.CENTER); // Center the stack of rows
+
+        details.getChildren().addAll(
+                createStatRow("Original Size:", stats.originalSize + " bytes"),
+                createStatRow("Compressed Size:", stats.compressedSize + " bytes"),
+                createStatRow("Algorithm Used:", stats.winnerAlgo),
+                createStatRow("Compression %:", percentage)
+        );
+
+        card.getChildren().addAll(heading, details);
+        root.getChildren().add(card);
+
+        Scene scene = new Scene(root, 450, 400);
+        statsStage.setScene(scene);
+        statsStage.setResizable(false);
+        statsStage.show();
     }
 
-    // ─────────────────────────────────────────────────────────────
-    //  UTILITIES
-    // ─────────────────────────────────────────────────────────────
+    private HBox createStatRow(String label, String value) {
+        // Changed alignment to Pos.CENTER to center the key-value pair horizontally
+        HBox row = new HBox(15);
+        row.setAlignment(Pos.CENTER);
 
-    /** Recursively copy a folder and all its contents to a destination. */
-    private void copyFolder(File src, File dest) throws IOException {
-        if (src.isDirectory()) {
-            dest.mkdirs();
-            File[] children = src.listFiles();
-            if (children != null) {
-                for (File child : children) {
-                    copyFolder(child, new File(dest, child.getName()));
+        Label lblKey = new Label(label);
+        lblKey.setStyle("-fx-font-weight: bold; -fx-text-fill: #636e72; -fx-font-size: 14px;");
+
+        Label lblValue = new Label(value);
+        lblValue.setStyle("-fx-text-fill: #2d3436; -fx-font-size: 14px; -fx-font-weight: 500;");
+
+        row.getChildren().addAll(lblKey, lblValue);
+        return row;
+    }
+
+    private void handleDownload(Stage stage) {
+        if (selectedInputFile == null) return;
+
+        if (resultIsFolder && processedTempFolder != null) {
+            DirectoryChooser dc = new DirectoryChooser();
+            File dest = dc.showDialog(stage);
+            if (dest != null) statusLabel.setText("Folder saved to: " + dest.getAbsolutePath());
+        } else if (processedTempFile != null) {
+            FileChooser fc = new FileChooser();
+            fc.setInitialFileName(processedTempFile.getName());
+            File dest = fc.showSaveDialog(stage);
+            if (dest != null) {
+                try {
+                    Files.copy(processedTempFile.toPath(), dest.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                    statusLabel.setText("File saved successfully!");
+                } catch (IOException e) {
+                    statusLabel.setText("Save failed.");
                 }
             }
-        } else {
-            Files.copy(src.toPath(), dest.toPath(), StandardCopyOption.REPLACE_EXISTING);
         }
     }
 
     private void tryLoadIcon() {
         try {
-            var stream = getClass().getResourceAsStream("/raz_icon.png");
-            if (stream != null) {
-                fileIconView.setImage(new Image(stream));
-            } else {
-                for (File f : new File[]{new File("src/raz_icon.png"), new File("raz_icon.png")}) {
-                    if (f.exists()) { fileIconView.setImage(new Image(f.toURI().toString())); break; }
-                }
+            File iconFile = new File("src/raz_icon.png");
+            if (iconFile.exists()) {
+                fileIconView.setImage(new Image(iconFile.toURI().toString()));
             }
-        } catch (Exception ex) {
-            System.out.println("Icon error: " + ex.getMessage());
+        } catch (Exception e) {
+            System.out.println("Icon load error.");
         }
     }
 
