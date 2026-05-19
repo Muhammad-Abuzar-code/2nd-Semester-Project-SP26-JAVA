@@ -15,11 +15,6 @@ public class FileHandler {
         Files.write(Paths.get(filePath), data);
     }
 
-    // Get file size in KB
-    public long getFileSizeKB(String filePath) {
-        return new File(filePath).length() / 1024;
-    }
-
     // Get file extension (.pdf, .txt, .png)
     public String getExtension(String filePath) {
         int dot = filePath.lastIndexOf('.');

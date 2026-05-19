@@ -76,10 +76,10 @@ public class MultiLevelCompressor {
                 new BufferedOutputStream(new FileOutputStream(outputZipPath)))) {
 
             for (File file : allFiles) {
-                Path   relativePath = folderRoot.relativize(file.toPath());
-                String entryName    = relativePath.toString().replace(File.separatorChar, '/') + ".raz";
+                Path   relativePath = folderRoot.relativize(file.toPath()); // gives folder in which file is placed but not the root folder
+                String entryName    = relativePath.toString().replace(File.separatorChar, '/') + ".raz";// zip expects / but window expects \
 
-                byte[] razBytes = compressToBytes(file);
+                byte[] razBytes = compressToBytes(file); // stores the compressed file data
 
                 // Track aggregate sizes
                 totalOriginalSize += file.length();
@@ -89,7 +89,6 @@ public class MultiLevelCompressor {
                 zos.write(razBytes);
                 zos.closeEntry();
 
-                System.out.println("[Folder] Packed: " + entryName);
             }
         }
 
@@ -101,19 +100,20 @@ public class MultiLevelCompressor {
         lastStats.ratio = (1.0 - ((double) totalCompressedSize / totalOriginalSize)) * 100;
         lastStats.fileName = folder.getName();
 
-        System.out.println("Folder archive written: " + outputZipPath);
     }
 
-    public void decompressFile(String inputPath, String outputFolder) throws IOException {
-        byte[]     fileData    = fileHandler.readFile(inputPath);
-        byte[]     restored    = decompressRazBytes(fileData);
-        FileHeader header      = readHeaderFromBytes(fileData);
+    public String decompressFile(String inputPath, String outputFolder) throws IOException {
+        byte[]     fileData    = fileHandler.readFile(inputPath); // will store compressed file
+        byte[]     restored    = decompressRazBytes(fileData); // will store only decompressed data excluding header
+        FileHeader header      = readHeaderFromBytes(fileData); // will store header data
 
-        String baseName   = fileHandler.getFileName(inputPath);
+        String baseName   = fileHandler.getFileName(inputPath); // will store compressed file name
         String outputPath = outputFolder + File.separator
                 + "restored_" + baseName + header.getOriginalExtension();
         fileHandler.writeFile(outputPath, restored);
-        System.out.println("Decompressed: " + outputPath);
+
+        return outputPath;
+
     }
 
     public String decompressFolder(String zipPath, String outputFolder) throws IOException {
@@ -149,25 +149,11 @@ public class MultiLevelCompressor {
                 outFile.getParentFile().mkdirs();
                 Files.write(outFile.toPath(), restored);
 
-                System.out.println("[Folder] Restored: " + outFile.getPath());
                 zis.closeEntry();
             }
         }
 
-        System.out.println("Folder restored to: " + restoredFolderPath);
         return restoredFolderPath;
-    }
-
-    public String getOriginalExtensionFromHeader(String razFilePath) {
-        try (DataInputStream dis = new DataInputStream(new FileInputStream(razFilePath))) {
-            dis.readInt();
-            byte[] magic = new byte[4];
-            dis.read(magic);
-            dis.readUTF();       // algorithm name
-            return dis.readUTF(); // original extension
-        } catch (IOException e) {
-            return "";
-        }
     }
 
     private static class BestResult {

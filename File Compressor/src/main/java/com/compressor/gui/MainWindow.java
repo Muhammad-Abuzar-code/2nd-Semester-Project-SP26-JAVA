@@ -25,7 +25,6 @@ import java.nio.file.StandardCopyOption;
 public class MainWindow extends Application {
 
     private final MultiLevelCompressor compressor = new MultiLevelCompressor();
-    private final FileHandler fileHandler = new FileHandler();
 
     private final Label statusLabel = new Label();
     private final Button downloadButton = new Button("Download Result");
@@ -43,7 +42,7 @@ public class MainWindow extends Application {
     public void start(Stage primaryStage) {
         primaryStage.setTitle("RAZ Archiver");
 
-        // --- HEADER SECTION ---
+        // HEADER SECTION
         StackPane headerPane = new StackPane();
         headerPane.setPadding(new Insets(15, 0, 15, 0));
         headerPane.setStyle("-fx-background-color: #ffffff; " +
@@ -64,7 +63,7 @@ public class MainWindow extends Application {
         }
         headerPane.getChildren().add(logoView);
 
-        // --- MAIN CONTENT AREA ---
+        // MAIN CONTENT AREA
         VBox mainContent = new VBox(30);
         mainContent.setAlignment(Pos.CENTER);
         mainContent.setPadding(new Insets(40, 50, 50, 50));
@@ -79,7 +78,6 @@ public class MainWindow extends Application {
 
         VBox feedbackArea = new VBox(15);
         feedbackArea.setAlignment(Pos.CENTER);
-
 
 
         HBox resultDisplay = new HBox(12);
@@ -230,7 +228,7 @@ public class MainWindow extends Application {
                         processedTempFile = File.createTempFile(selectedInputFile.getName() + "_", ".raz.zip");
                         compressor.compressFolder(selectedInputFile.getAbsolutePath(), processedTempFile.getAbsolutePath());
                     } else {
-                        processedTempFile = File.createTempFile("raz_output_", ".raz");
+                        processedTempFile = File.createTempFile("raz_output", ".raz");
                         compressor.compressFile(selectedInputFile.getAbsolutePath(), processedTempFile.getAbsolutePath());
                     }
                 } else {
@@ -240,8 +238,8 @@ public class MainWindow extends Application {
                         String path = compressor.decompressFolder(selectedInputFile.getAbsolutePath(), tempDir.getAbsolutePath());
                         processedTempFolder = new File(path);
                     } else {
-                        compressor.decompressFile(selectedInputFile.getAbsolutePath(), tempDir.getAbsolutePath());
-                        processedTempFile = new File(tempDir, "restored_" + selectedInputFile.getName().replace(".raz", ""));
+                        String path = compressor.decompressFile(selectedInputFile.getAbsolutePath(), tempDir.getAbsolutePath());
+                        processedTempFile = new File(path);
                     }
                 }
 
@@ -250,7 +248,7 @@ public class MainWindow extends Application {
             }
         };
 
-
+        //Platfor.runLater() switch back safely to main ui thread after task process completed in background thread
         task.setOnSucceeded(event -> Platform.runLater(() -> {
             statusLabel.setText(isCurrentlyCompressing ? "Compression Complete!" : "Restoration Complete!");
             downloadButton.setVisible(true);
@@ -299,10 +297,10 @@ public class MainWindow extends Application {
         details.setAlignment(Pos.CENTER); // Center the stack of rows
 
         details.getChildren().addAll(
-                createStatRow("Original Size:", stats.originalSize + " bytes"),
-                createStatRow("Compressed Size:", stats.compressedSize + " bytes"),
-                createStatRow("Algorithm Used:", stats.winnerAlgo),
-                createStatRow("Compression %:", percentage)
+                createStatRow("Original Size   :", stats.originalSize + " bytes"),
+                createStatRow("Compressed Size :", stats.compressedSize + " bytes"),
+                createStatRow("Algorithm Used  :", stats.winnerAlgo),
+                createStatRow("Compression %   :", percentage)
         );
 
         card.getChildren().addAll(heading, details);
