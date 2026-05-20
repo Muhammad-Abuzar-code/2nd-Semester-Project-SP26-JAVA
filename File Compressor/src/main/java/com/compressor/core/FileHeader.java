@@ -4,7 +4,7 @@ import java.io.*;
 
 public class FileHeader {
 
-    // Updated Magic number to identify .raz files
+    //Magic number to identify .raz files
     public static final byte[] MAGIC = {'R', 'A', 'Z', '!'};
 
     private String pipelineName;
@@ -44,7 +44,6 @@ public class FileHeader {
         dis.read(magic);
         for (int i = 0; i < 4; i++) {
             if (magic[i] != MAGIC[i]) {
-                // Updated error message to reflect the new extension
                 throw new IOException("Invalid .raz file!");
             }
         }

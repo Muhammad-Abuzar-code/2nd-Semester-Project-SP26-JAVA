@@ -141,7 +141,7 @@ public class MainWindow extends Application {
         dropZone.setOnDragDropped(event -> {
             if (event.getDragboard().hasFiles()) {
                 File dropped = event.getDragboard().getFiles().get(0);
-                setSelection(dropped, isCompress);
+                setSelection(dropped);
                 event.setDropCompleted(true);
             }
             event.consume();
@@ -156,7 +156,7 @@ public class MainWindow extends Application {
             fileBtn.setOnAction(event -> {
                 FileChooser fc = new FileChooser();
                 File file = fc.showOpenDialog(stage);
-                if (file != null) setSelection(file, true);
+                if (file != null) setSelection(file);
             });
 
             Button folderBtn = new Button("Select Folder");
@@ -164,7 +164,7 @@ public class MainWindow extends Application {
             folderBtn.setOnAction(event -> {
                 DirectoryChooser dc = new DirectoryChooser();
                 File folder = dc.showDialog(stage);
-                if (folder != null) setSelection(folder, true);
+                if (folder != null) setSelection(folder);
             });
             selectButtons.getChildren().addAll(fileBtn, folderBtn);
         } else {
@@ -173,7 +173,7 @@ public class MainWindow extends Application {
             fileBtn.setOnAction(event -> {
                 FileChooser fc = new FileChooser();
                 File file = fc.showOpenDialog(stage);
-                if (file != null) setSelection(file, false);
+                if (file != null) setSelection(file);
             });
             selectButtons.getChildren().add(fileBtn);
         }
@@ -194,7 +194,7 @@ public class MainWindow extends Application {
         return col;
     }
 
-    private void setSelection(File f, boolean isCompress) {
+    private void setSelection(File f) {
         selectedInputFile = f;
         selectedIsFolder = f.isDirectory();
 
@@ -398,6 +398,7 @@ public class MainWindow extends Application {
     }
 
     public static void main(String[] args) {
+
         launch(args);
     }
 }
