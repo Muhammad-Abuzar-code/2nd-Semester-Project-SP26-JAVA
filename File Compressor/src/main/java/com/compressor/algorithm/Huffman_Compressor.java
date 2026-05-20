@@ -9,10 +9,10 @@ public class Huffman_Compressor extends CompressionAlgorithm {
     private static class HuffmanNode implements Comparable<HuffmanNode> {
 
         byte value;           // the actual byte this node represents
-        int frequency;        // how often it appears
-        HuffmanNode left;     // left child
-        HuffmanNode right;    // right child
-        boolean isLeaf;       // true if this node holds actual data
+        int frequency;
+        HuffmanNode left;
+        HuffmanNode right;
+        boolean isLeaf;
 
         // Constructor for leaf node (actual byte)
         HuffmanNode(byte value, int frequency) {
@@ -47,13 +47,13 @@ public class Huffman_Compressor extends CompressionAlgorithm {
             return new byte[0];
         }
 
-        // STEP 1 — Count frequencies
+        // Counting the frequencies
         int[] frequency = new int[256];
         for (byte b : data) {
             frequency[b & 0xFF]++;
         }
 
-        // STEP 2 — Build priority queue
+        // Building the priority queue
         PriorityQueue<HuffmanNode> queue = new PriorityQueue<>();
         for (int i = 0; i < 256; i++) {
             if (frequency[i] > 0) {
@@ -61,34 +61,34 @@ public class Huffman_Compressor extends CompressionAlgorithm {
             }
         }
 
-        // Handle single unique byte case
+        // Handle single unique byte case by adding a dummy node
         if (queue.size() == 1) {
             HuffmanNode only = queue.poll();
             HuffmanNode dummy = new HuffmanNode((byte)0, 0);
             queue.add(new HuffmanNode(dummy, only));
         }
 
-        // STEP 3 — Build tree
+        // Building the  tree
         while (queue.size() > 1) {
-            HuffmanNode left = queue.poll();   // smallest
-            HuffmanNode right = queue.poll();  // second smallest
+            HuffmanNode left = queue.poll();   // smallest available in the list
+            HuffmanNode right = queue.poll();  // second smallest available in the list
             queue.add(new HuffmanNode(left, right));
         }
 
         HuffmanNode root = queue.poll();
 
-        // STEP 4 — Generate codes
+        // Generating codes for thr built tree
         HashMap<Byte, String> codes = new HashMap<>();
         generateCodes(root, "", codes);
 
-        // STEP 5 — Encode data to bit string
+        // Encoding data to bit string
         StringBuilder bitString = new StringBuilder();
         for (byte b : data) {
             bitString.append(codes.get(b));
         }
 
-        // STEP 6 — Pack bits into bytes
-        // Add padding to make length multiple of 8
+        // Pack bits into bytes and adding Padding so these can be easily packed into 1 byte (1byte = 8bits)
+        // padding will be added at the very end after whole converion.
         int padding = 8 - (bitString.length() % 8);
         if (padding == 8) padding = 0;
         for (int i = 0; i < padding; i++) {
@@ -101,10 +101,10 @@ public class Huffman_Compressor extends CompressionAlgorithm {
             compressedData[i] = (byte) Integer.parseInt(byteStr, 2);
         }
 
-        // STEP 7 — Serialize tree and combine with data
+        // Serialize tree and combine with data
         byte[] treeBytes = serializeTree(root);
 
-        // Final output: [treeSize(4 bytes)][tree][padding(1 byte)][compressedData]
+        //  Writing tree, padding info and compressed bytes step by step
         ByteArrayOutputStream finalOutput = new ByteArrayOutputStream();
         DataOutputStream dos = new DataOutputStream(finalOutput);
 
@@ -120,9 +120,8 @@ public class Huffman_Compressor extends CompressionAlgorithm {
         return finalOutput.toByteArray();
     }
 
-    // Recursively generate codes
-    private void generateCodes(HuffmanNode node, String code,
-                               HashMap<Byte, String> codes) {
+    // Method to generate codes by traversing through the tree in preorder traversal, It uses Recursion.
+    private void generateCodes(HuffmanNode node, String code, HashMap<Byte, String> codes) {
         if (node.isLeaf) {
             codes.put(node.value, code.isEmpty() ? "0" : code);
             return;
@@ -131,15 +130,14 @@ public class Huffman_Compressor extends CompressionAlgorithm {
         generateCodes(node.right, code + "1", codes);
     }
 
-    // Save tree as bytes
+    // Saving tree as bytes because memory can not save tree as it is, so it needs to be converted to linear form.
     private byte[] serializeTree(HuffmanNode node) {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         serializeHelper(node, output);
         return output.toByteArray();
     }
 
-    private void serializeHelper(HuffmanNode node,
-                                 ByteArrayOutputStream out) {
+    private void serializeHelper(HuffmanNode node, ByteArrayOutputStream out) {
         if (node.isLeaf) {
             out.write(1);           // 1 means leaf
             out.write(node.value);  // the byte value
@@ -157,24 +155,22 @@ public class Huffman_Compressor extends CompressionAlgorithm {
             return new byte[0];
         }
 
-        DataInputStream dis = new DataInputStream(
-                new ByteArrayInputStream(data)
-        );
+        DataInputStream dis = new DataInputStream(new ByteArrayInputStream(data));
 
         try {
-            // Read tree
+            // Read the tree
             int treeSize = dis.readInt();
             byte[] treeBytes = new byte[treeSize];
             dis.read(treeBytes);
 
-            // Rebuild tree
+            // Rebuilding the tree
             int[] index = {0};
             HuffmanNode root = deserializeTree(treeBytes, index);
 
-            // Read padding
+            // Reading the padding
             int padding = dis.read();
 
-            // Read compressed data
+            // Reading the compressed data
             byte[] compressedData = dis.readAllBytes();
 
             // Convert bytes back to bit string
