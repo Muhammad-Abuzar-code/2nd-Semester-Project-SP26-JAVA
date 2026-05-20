@@ -69,6 +69,7 @@ public class MainWindow extends Application {
         mainContent.setPadding(new Insets(40, 50, 50, 50));
         mainContent.setStyle("-fx-background-color: #f0f2f5;");
 
+        //Compress and Decompress section with drag and drop, and also select folder or file
         HBox splitContent = new HBox(60);
         splitContent.setAlignment(Pos.CENTER);
 
@@ -90,7 +91,13 @@ public class MainWindow extends Application {
 
         downloadButton.setVisible(false);
         downloadButton.setStyle("-fx-background-color: #000080;-fx-text-fill: white; -fx-padding: 10 30; -fx-cursor: hand; -fx-font-weight: bold; -fx-background-radius: 5;");
-        downloadButton.setOnAction(event -> handleDownload(primaryStage));
+        downloadButton.setOnAction(event -> {
+            try {
+                handleDownload(primaryStage);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
 
         statsButton.setVisible(false);
         statsButton.setStyle("-fx-background-color: #007bff; -fx-text-fill: white; -fx-padding: 10 30; -fx-cursor: hand; -fx-font-weight: bold; -fx-background-radius: 5;");
@@ -327,13 +334,21 @@ public class MainWindow extends Application {
         return row;
     }
 
-    private void handleDownload(Stage stage) {
+    private void handleDownload(Stage stage) throws IOException {
         if (selectedInputFile == null) return;
 
         if (resultIsFolder && processedTempFolder != null) {
             DirectoryChooser dc = new DirectoryChooser();
             File dest = dc.showDialog(stage);
-            if (dest != null) statusLabel.setText("Folder saved to: " + dest.getAbsolutePath());
+
+            if (dest != null) {
+
+                File finalFolder = new File(dest, processedTempFolder.getName());
+
+                copyFolder(processedTempFolder.toPath(), finalFolder.toPath());
+
+                statusLabel.setText("Folder saved successfully!");
+            }
         } else if (processedTempFile != null) {
             FileChooser fc = new FileChooser();
             fc.setInitialFileName(processedTempFile.getName());
@@ -347,6 +362,28 @@ public class MainWindow extends Application {
                 }
             }
         }
+    }
+
+    private void copyFolder(java.nio.file.Path source,
+                            java.nio.file.Path target) throws IOException {
+
+        Files.walk(source).forEach(path -> {
+            try {
+
+                java.nio.file.Path relative = source.relativize(path);
+                java.nio.file.Path destination = target.resolve(relative);
+
+                if (Files.isDirectory(path)) {
+                    Files.createDirectories(destination);
+                } else {
+                    Files.copy(path, destination,
+                            StandardCopyOption.REPLACE_EXISTING);
+                }
+
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
     }
 
     private void tryLoadIcon() {

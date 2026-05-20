@@ -17,7 +17,7 @@ public class MultiLevelCompressor {
     private RLE_Compressor    rle;
     private LZW_Compressor    lzw;
     private Huffman_Compressor huffman;
-    private CompressionStats lastStats;
+    private CompressionStats  lastStats;
 
     public MultiLevelCompressor() {
         fileHandler = new FileHandler();
@@ -53,13 +53,8 @@ public class MultiLevelCompressor {
         lastStats.ratio = ratio;
         lastStats.fileName = new File(inputPath).getName();
 
-        System.out.printf("[File] %s  →  winner: %s  (%.2f%%)%n",
-                new File(inputPath).getName(), best.name, ratio);
     }
 
-    /**
-     * Updated to track aggregate statistics for folder compression.
-     */
     public void compressFolder(String folderPath, String outputZipPath) throws IOException {
         File folder = new File(folderPath);
         if (!folder.isDirectory()) throw new IOException("Not a folder: " + folderPath);

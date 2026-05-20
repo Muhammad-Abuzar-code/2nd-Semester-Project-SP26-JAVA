@@ -26,7 +26,7 @@ public class LZW_Compressor extends CompressionAlgorithm {
         }
 
         int dictSize = 256;
-        final int MAX_DICT_SIZE = 4096;
+        final int MAX_DICT_SIZE = 65536;
         String current = String.valueOf((char) (data[0] & 0xFF));
         List<Integer> Compressed_Data_List = new ArrayList<>();
 
@@ -79,7 +79,7 @@ public class LZW_Compressor extends CompressionAlgorithm {
         }
 
         int dictSize = 256;
-        final int MAX_DICT_SIZE = 4096;
+        final int MAX_DICT_SIZE = 65536;
 
         List<Integer> ByteToInt_List = new ArrayList<>();
         for (int i = 0; i < data.length - 1; i += 2) {
@@ -109,14 +109,14 @@ public class LZW_Compressor extends CompressionAlgorithm {
             dictionary.put(dictSize++, current + next.charAt(0));
             current = next;
 
-            // ✅ Mirror the exact same reset logic as compress
+
             if (dictSize > MAX_DICT_SIZE) {
                 dictionary.clear();
                 for (int j = 0; j < 256; j++) {
                     dictionary.put(j, String.valueOf((char) j));
                 }
                 dictSize = 256;
-                current = next; // keep current as the last decoded string
+                current = next;
             }
         }
 
