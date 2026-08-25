@@ -196,6 +196,15 @@ Additional project documentation is available in the [`Project Material`](Projec
 
 ---
 
+## Contributors
+
+This project was developed by two contributors:
+
+- **Muhammad Abuzar (Muhammad-Abuzar-code)**
+- **Muhammad Rabee Umar (mrabeeumar)**
+
+---
+
 ## Course Context
 
 This project was developed as a **2nd Semester Java Programming Project (SP26)**, demonstrating object-oriented design, data structures (priority queues, hash maps, binary trees), file I/O, and desktop GUI development in Java.
