@@ -49,7 +49,7 @@ The generator is embedded in `BenchmarkRunner.java` (fixed seed `42`), so the co
 | random.bin | 512,000 | 512,807 | 512,294 | 500.8 | 500.3 |
 | **Total** | **4,812,208** | **939,010** | **826,327** | **917.0** | **807.0** |
 
-![Compressed sizes](Results/plots/plot_compressed_sizes.png)
+![Compressed sizes](plots/plot_compressed_sizes.png)
 
 **Table 2 — Space saved and relative archive size** (ratio = 1 − compressed/original; `RAZ/ZIP` > 1 means the RAZ archive is larger):
 
@@ -63,9 +63,9 @@ The generator is embedded in `BenchmarkRunner.java` (fixed seed `42`), so the co
 | random.bin | −0.16% | −0.06% | 1.00× | Huffman |
 | **Aggregate** | **80.49%** | **82.83%** | **1.14×** | Adaptive (per-file) |
 
-![Compression ratio](Results/plots/plot_compression_ratio.png)
+![Compression ratio](plots/plot_compression_ratio.png)
 
-![Relative size](Results/plots/plot_relative_size.png)
+![Relative size](plots/plot_relative_size.png)
 
 ---
 
@@ -91,7 +91,7 @@ The generator is embedded in `BenchmarkRunner.java` (fixed seed `42`), so the co
 | repetitive.dat | 7.3 | 96.1 | 149.3 | 571.1 |
 | random.bin | 2.8 | 34.4 | 3.0 | 554.9 |
 
-![Timings](Results/plots/plot_timings.png)
+![Timings](plots/plot_timings.png)
 
 ---
 
