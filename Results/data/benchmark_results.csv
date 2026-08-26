@@ -1,0 +1,7 @@
+dataset,original_bytes,raz_bytes,zip_bytes,winner_algo,raz_compress_ms,zip_compress_ms,raz_decompress_ms,zip_decompress_ms
+en_text.txt,1000009,70138,18364,LZW+Huffman,145.45,5.89,33.59,1.27
+source_code.txt,800066,59486,35429,LZW+Huffman,92.92,10.20,36.94,1.44
+data.csv,600026,160829,140518,LZW+Huffman,75.08,40.67,60.55,2.83
+app.log,900060,125395,108654,LZW,118.69,14.56,12.51,2.20
+repetitive.dat,1000047,10355,11068,LZW+Huffman,130.78,9.92,6.39,1.67
+random.bin,512000,512807,512294,Huffman,172.11,14.20,164.40,0.88
