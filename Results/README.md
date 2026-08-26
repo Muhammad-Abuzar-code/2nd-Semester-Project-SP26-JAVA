@@ -133,5 +133,16 @@ ZIP DEFLATE is the stronger general-purpose compressor; RAZ Archiver delivers co
 
 ---
 
+## 6. Reproducing These Results
 
+```bash
+# 1. Run the benchmark (writes results/data/benchmark_results.csv)
+cd "File Compressor"
+javac -d target/bench-classes $(find src/main/java -name '*.java' ! -path '*gui*')
+java -cp target/bench-classes com.compressor.benchmark.BenchmarkRunner ../results/data
 
+# 2. Regenerate the plots
+python3 results/plots/make_plots.py
+```
+
+Raw measurements: [`data/benchmark_results.csv`](data/benchmark_results.csv) · Plot script: [`plots/make_plots.py`](plots/make_plots.py)
